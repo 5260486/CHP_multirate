@@ -12,38 +12,45 @@ d=n2/n1;
 t0=0;
 tspan1=h1;
 tspan2=h2;
-tol=1e-5;
-hmin=0.1;
+tol=1e-3;
+hmin=1;
 hmax1=tspan1;
 hamx2=tspan2;
+
+At=[1/4,3/8,12/13,1,1/2];
+Ay.Ay1=1/4;
+Ay.Ay2=[3/32,9/32];
+Ay.Ay3=[1932/2197,-7200/2197,7296/2197];
+Ay.Ay4=[439/216,-8,3600/513,-845/4104];
+Ay.Ay5=[-8/27,2,-3544/2565,1859/4104,-11/40];
 %% Parameters
-k_c=16.05;      % 焦炉煤气低位热值
-k_b=3.26;       % 高炉煤气低位热值,MJ/Nm3
+k_c=16.05;      % ???ú????λ???
+k_b=3.26;       % ???ú????λ???,MJ/Nm3
 
-Cal1.C_b=2600;       %  汽包蓄热系数≈锅炉蓄热系数，(MW.S/MPa)
+Cal1.C_b=2600;       %  ????????????????????????(MW.S/MPa)
 
-Cal1.K1=0.3537;      % 机组发电效率，30~40%
-Cal1.K_3f=6.328;%5.609;    % 代表锅炉的增益系数
+Cal1.K1=0.3537;      % ???鷢??Ч???30~40%
+Cal1.K_3f=6.328;%5.609;    % ????????????????
 Cal1.K_4f=4.951;%4.522;
 
-Cal1.Kf=15;      %单位 s
+Cal1.Kf=15;      %??λ s
 
 Cal1.K21=0.002321;%0.001923;%
 Cal1.K22=0.001728;%0.001882;%
 Cal1.K3=0.03322;%0.02954;%
 Cal1.K4=0.04369;%0.04964;%
 
-% 第一列：时刻Time/h，10：00-22：00；
-% 第二列：Q_B；第三列：Q_C；
-% 第四列：P_d；第五列：P_t；
-% 第六列：u_T；第七列：NE；
-Boiler1_Data=load('E:\\programs\\matlab\\CHP_multirate-main\\Boiler1Data.txt');
-Boiler2_Data=load('E:\\programs\\matlab\\CHP_multirate-main\\Boiler2Data.txt');
+% ????У????Time/h??10??00-22??00??
+% ????У?Q_B???????У?Q_C??
+% ?????У?P_d???????У?P_t??
+% ?????У?u_T???????У?NE??
+Boiler1_Data=load('D:\\program\\CHP_experiment\\Boiler1Data.txt');
+Boiler2_Data=load('D:\\program\\CHP_experiment\\Boiler2Data.txt');
 
 %% Initial value
-% 19:00, 1 号锅炉和 2 号锅炉高炉煤气与焦炉煤气的流量，以及 1 号汽轮机与 2 号汽轮机的进气阀门开度
+% 19:00, 1 ?????? 2 ???????ú?????ú????????????? 1 ????????? 2 ???????????????????
 time=4;
-%time=10;
+% time=10;
 
 Q_B1_initial=Boiler1_Data(time,2);            
 Q_B2_initial=Boiler2_Data(time,2);
@@ -77,61 +84,55 @@ Q_C.Q_C2=Boiler2_Data(time+1,3);
 u_b_variable=Calculat_ub(Q_B,Q_C,k_c,k_b);
 
 %% Main 
-Pd1=[];
-Pd2=[];
-Pt1=[];
-Pt2=[];
-T=[];
-Ne1=[];
-Ne2=[];
+% Pd1=[];
+% Pd2=[];
+% Pt1=[];
+% Pt2=[];
+% t1=[];
+% t2=[];
+% Ne1=[];
+% Ne2=[];
+
 y1_0=P_d1_initial;
 y2_0=P_d2_initial;
 x1_0=N_E1_initial;
 x2_0=N_E2_initial;
 q=q_initial;
 u_b=u_b_variable;
-tic
-for i =1:n1
 
-    result1=RKF45_Pd(tspan1,tol,hmin,hmax1,y1_0,y2_0,u_b,q,u_T,Cal1);           
-    y1_0=vpa(result1.y1,5);
-    y2_0=vpa(result1.y2,5);
-    
-    P_t1=vpa(result1.Pt1,5);
-    P_t2=vpa(result1.Pt2,5);
-    P_t=vpa(result1.Pt,5);
-   
-    Pd1(end+1)=y1_0;
-    Pd2(end+1)=y2_0;
-    Pt1(end+1)=P_t1;
-    Pt2(end+1)=P_t2;
-    T(end+1)=result1.t;
-    
-    for j=1:d
-        result2=Runge2_Ne(h2,x1_0,x2_0,P_t,u_T,Cal1);      %这个步长要小
-        x1_0=vpa(result2.Ne1,5);
-        x2_0=vpa(result2.Ne2,5);
-    end
-        Ne1(end+1)=x1_0;
-        Ne2(end+1)=x2_0;
-end
+tspan=b-a;
+hmax=100;
+tic
+
+       RKF45_Pd(tspan,tol,hmin,hmax,...
+                                    u_b,q,u_T,Cal1,Ay,...
+                                    y1_0,y2_0,x1_0,x2_0);
+%         y1_0=result1.Pd1;
+%         y2_0=result1.Pd2;
+%         Pt=result1.Pt;                                
+%         flag1=result1.flag;
+%         Pd1(end+1)=result1.Pd1;
+%         Pd2(end+1)=result1.Pd2;
+%         t1(end+1)=result1.t;
+
+
 toc
 
-subplot(3,1,1);
-p1=plot(T,Pd1,T,Pd2);grid on;p1(1).LineWidth=2;p1(2).LineWidth=2;
-title('13:00--14:00');
-% title('19:00--20:00');
-ylabel('Pd/Mpa'),legend('Boiler 1','Boiler 2');
-subplot(3,1,2);
-p2=plot(T,Pt1,T,Pt2);grid on;p2(1).LineWidth=2;p2(2).LineWidth=2;
-ylabel('Pt/Mpa'),legend('Turbine 1','Turbine 2');
-subplot(3,1,3);
-p3=plot(T,Ne1,T,Ne2);grid on;p3(1).LineWidth=2;p3(2).LineWidth=2;
-xlabel('Time/h'),ylabel('Ne/MW'),legend('Turbine 1','Turbine 2');
+% subplot(3,1,1);
+% p1=plot(T,Pd1,T,Pd2);grid on;p1(1).LineWidth=2;p1(2).LineWidth=2;
+% title('13:00--14:00');
+% % title('19:00--20:00');
+% ylabel('Pd/Mpa'),legend('Boiler 1','Boiler 2');
+% subplot(3,1,2);
+% p2=plot(T,Pt1,T,Pt2);grid on;p2(1).LineWidth=2;p2(2).LineWidth=2;
+% ylabel('Pt/Mpa'),legend('Turbine 1','Turbine 2');
+% subplot(3,1,3);
+% p3=plot(T,Ne1,T,Ne2);grid on;p3(1).LineWidth=2;p3(2).LineWidth=2;
+% xlabel('Time/h'),ylabel('Ne/MW'),legend('Turbine 1','Turbine 2');
 
 %% Fuel input
-% ub：输入燃料能量MJ/h
-% Qc：焦炉煤气输入锅炉的流量；Qb：高炉煤气输入锅炉的流量，Nm3/h（标准立方米/小时）
+% ub?????????????MJ/h
+% Qc?????ú????????????????Qb?????ú????????????????Nm3/h???????????/С???
 
 function u_b=Calculat_ub(Q_B,Q_C,k_c,k_b)
 
@@ -141,7 +142,7 @@ function u_b=Calculat_ub(Q_B,Q_C,k_c,k_b)
 end
 
 %%  Steam heating balance
-% q1、q2是两个锅炉产生的热蒸汽量，MW。1MW=3.6*1e3MJ/h
+% q1??q2?????????????????????????MW??1MW=3.6*1e3MJ/h
 function q=Calculate_q(u_b)
     all_steam_heat=51.5;
     syms q_1 q_2;
@@ -155,99 +156,159 @@ end
 
 %% Overvoltage differential model+Boiler heat balance
 
-function [P_t,P_t1,P_t2,d_P_d1,d_P_d2]=Calculate_Pd(P_d1,P_d2,u_b,q,u_T,Cal1)        % P_d1=y1,P_d2=y2
+function result=Calculate_Pd(P_d1,P_d2,N_E1,N_E2,u_b,q,u_T,Cal1)        % P_d1=y1,P_d2=y2
 
     u_b1=u_b.u_b1;
     u_b2=u_b.u_b2;
     u_T1=u_T.u_T1;
     u_T2=u_T.u_T2;
     
-    % Pd:汽包压力,Mpa；Pt：汽轮机压力,MPa；u_b：输入燃料，MJ/Nm3；K21、K22：过热器阻尼系数
+    % Pd:???????,Mpa??Pt??????????,MPa??u_b??????????MJ/Nm3??K21??K22???????????????
     P_t1=P_d1-Cal1.K21*(Cal1.K1*u_b1)^1.3;
     P_t2=P_d2-Cal1.K22*(Cal1.K1*u_b2)^1.3;
 
-    % 计算汽轮机进气压力：
-    P_t=(P_t1*(Cal1.K3*u_T1)+P_t2*(Cal1.K4*u_T2))/(Cal1.K3*u_T1+Cal1.K4*u_T2);
-    %(Cal1.K4*u_T2*P_t1+Cal1.K3*u_T1*P_t2)/(Cal1.K3*u_T1+Cal1.K4*u_T2);   %(Cal1.K_3f*P_t1+Cal1.K_4f*P_t2)/(Cal1.K_3f+Cal1.K_4f);        
+    % ??????????????????
+    P_t=(P_t1*(Cal1.K3*u_T1)+P_t2*(Cal1.K4*u_T2))/(Cal1.K3*u_T1+Cal1.K4*u_T2);        
 
     % Boiler heat balance
-    % 单位时间内锅炉的蓄热变化=单位时间内流入锅炉的热量与流出锅炉的热量
+    % ??λ?????????????仯=??λ????????????????????????????????
     
-    d_P_d1=1/Cal1.C_b*(-Cal1.K_3f*P_t1-q.q1+Cal1.K1*u_b1);            % d_P_d1=dy1/dt=f(t,y)     与时间无关
+    d_P_d1=1/Cal1.C_b*(-Cal1.K_3f*P_t1-q.q1+Cal1.K1*u_b1);            % d_P_d1=dy1/dt=f(t,y)     ????????
     d_P_d2=1/Cal1.C_b*(-Cal1.K_4f*P_t2-q.q2+Cal1.K1*u_b2);
     
+    d_N_E1=1/Cal1.Kf*(-N_E1+Cal1.K3*P_t*u_T1);                      % d_N_nE=dx/dt
+    d_N_E2=1/Cal1.Kf*(-N_E2+Cal1.K4*P_t*u_T2);
+    
+    result.Pt1=P_t1;
+    result.Pt2=P_t2;
+%     result.Pt=P_t;
+    result.dpd1=d_P_d1;
+    result.dpd2=d_P_d2;
+    result.dNe1=d_N_E1;
+    result.dNe2=d_N_E2;
 end
 
 %% Turbine energy balance
-% N_E：汽轮机输出功率，MW；K3、K4：汽轮机增益系数；Pt：汽轮机进气压力；u_T进气阀门开度,mm
+% N_E???????????????MW??K3??K4????????????????Pt????????????????u_T???????????,mm
 
-function [d_N_E1,d_N_E2]=Calculate_Ne(N_E1,N_E2,P_t,u_T,Cal1)        % N_nE=x1,x2
-    d_N_E1=1/Cal1.Kf*(-N_E1+Cal1.K3*P_t*u_T.u_T1);                      % d_N_nE=dx/dt
-    d_N_E2=1/Cal1.Kf*(-N_E2+Cal1.K4*P_t*u_T.u_T2);
-end
+% function [d_N_E1,d_N_E2]=Calculate_Ne(N_E1,N_E2,P_t,u_T,Cal1)        % N_nE=x1,x2
+%     d_N_E1=1/Cal1.Kf*(-N_E1+Cal1.K3*P_t*u_T.u_T1);                      % d_N_nE=dx/dt
+%     d_N_E2=1/Cal1.Kf*(-N_E2+Cal1.K4*P_t*u_T.u_T2);
+% end
 
 %% RKF45 solve
 
-function result=RKF45_Pd(tspan,tol,hmin,hmax,y1_0,y2_0,u_b,q,u_T,Cal1)
-    flag=true;
-    h=hmax;
+function result=RKF45_Pd(tspan,tol,hmin,hmax,...
+                                            u_b,q,u_T,Cal1,Ay,...
+                                            y1_0,y2_0,x1_0,x2_0)
     t=0;
+    h=hmax;
+    flag=true;
+    
+    Pd1=[];
+    Pd2=[];
+    Pt1=[];
+    Pt2=[];
+    Ne1=[];
+    Ne2=[];
+    T=[];
     
     while flag
         
-        [~,~,~,k11,k12]=Calculate_Pd(y1_0,y2_0,u_b,q,u_T,Cal1);
-        k11=h*k11;
-        k12=h*k12;
-        [~,~,~,k21,k22]=Calculate_Pd(y1_0+1/4*k11,y2_0+1/4*k12,u_b,q,u_T,Cal1);
-        k21=h*k21;
-        k22=h*k22;       
-        [~,~,~,k31,k32]=Calculate_Pd(y1_0+3/32*k11+9/32*k21,...
-                                        y2_0+3/32*k12+9/32*k22,u_b,q,u_T,Cal1);
-        k31=h*k31;
-        k32=h*k32;   
-        [~,~,~,k41,k42]=Calculate_Pd(y1_0+1932/2197*k11-7200/2197*k21+7296/2197*k31,...
-                                        y2_0+1932/2197*k12-7200/2197*k22+7296/2197*k32,u_b,q,u_T,Cal1);
-        k41=h*k41;
-        k42=h*k42;           
-        [~,~,~,k51,k52]=Calculate_Pd(y1_0+439/216*k11-8*k21+3680/513*k31-845*k41/4104,...
-                                         y2_0+439/216*k12-8*k22+3680/513*k32-845*k42/4104,...
-                                         u_b,q,u_T,Cal1);
-        k51=h*k51;
-        k52=h*k52;         
-        [~,~,~,k61,k62]=Calculate_Pd(y1_0-8/27*k11+2*k21-3544/2565*k31+1859/4104*k41-11/40*k51,...
-                                        y2_0-8/27*k12+2*k22-3544/2565*k32+1859/4104*k42-11/40*k52,...
+        result_pd=Calculate_Pd(y1_0,y2_0,x1_0,x2_0,u_b,q,u_T,Cal1);
+        k11=h*result_pd.dpd1;
+        k12=h*result_pd.dpd2;
+        k13=h*result_pd.dNe1;
+        k14=h*result_pd.dNe2;
+        result_pd=Calculate_Pd(y1_0+Ay.Ay1(1)*k11,y2_0+Ay.Ay1(1)*k12,...
+                                       x1_0+Ay.Ay1(1)*k13,x2_0+Ay.Ay1(1)*k14,...
+                                       u_b,q,u_T,Cal1);
+        k21=h*result_pd.dpd1;
+        k22=h*result_pd.dpd2;
+        k23=h*result_pd.dNe1;
+        k24=h*result_pd.dNe2;      
+        result_pd=Calculate_Pd(y1_0+Ay.Ay2(1)*k11+Ay.Ay2(2)*k21,y2_0+Ay.Ay2(1)*k12+Ay.Ay2(2)*k22,...
+                                        x1_0+Ay.Ay2(1)*k13+Ay.Ay2(2)*k23,x2_0+Ay.Ay2(1)*k14+Ay.Ay2(2)*k24,...
                                         u_b,q,u_T,Cal1);
-        k61=h*k61;
-        k62=h*k62;  
+        k31=h*result_pd.dpd1;
+        k32=h*result_pd.dpd2;
+        k33=h*result_pd.dNe1;
+        k34=h*result_pd.dNe2;   
+        result_pd=Calculate_Pd(y1_0+Ay.Ay3(1)*k11+Ay.Ay3(2)*k21+Ay.Ay3(3)*k31,...
+                                        y2_0+Ay.Ay3(1)*k12+Ay.Ay3(2)*k22+Ay.Ay3(3)*k32,...
+                                        x1_0+Ay.Ay3(1)*k13+Ay.Ay3(2)*k23+Ay.Ay3(3)*k33,...
+                                        x2_0+Ay.Ay3(1)*k14+Ay.Ay3(2)*k24+Ay.Ay3(3)*k34,...
+                                        u_b,q,u_T,Cal1);
+        k41=h*result_pd.dpd1;
+        k42=h*result_pd.dpd2;
+        k43=h*result_pd.dNe1;
+        k44=h*result_pd.dNe2;            
+        result_pd=Calculate_Pd(y1_0+Ay.Ay4(1)*k11+Ay.Ay4(2)*k21+Ay.Ay4(3)*k31+Ay.Ay4(4)*k41,...
+                                        y2_0+Ay.Ay4(1)*k12+Ay.Ay4(2)*k22+Ay.Ay4(3)*k32+Ay.Ay4(4)*k42,...
+                                        x1_0+Ay.Ay4(1)*k13+Ay.Ay4(2)*k23+Ay.Ay4(3)*k33+Ay.Ay4(4)*k43,...
+                                        x2_0+Ay.Ay4(1)*k14+Ay.Ay4(2)*k24+Ay.Ay4(3)*k34+Ay.Ay4(4)*k44,...
+                                        u_b,q,u_T,Cal1);
+        k51=h*result_pd.dpd1;
+        k52=h*result_pd.dpd2;
+        k53=h*result_pd.dNe1;
+        k54=h*result_pd.dNe2;        
+        result_pd=Calculate_Pd(y1_0+Ay.Ay5(1)*k11+Ay.Ay5(2)*k21+Ay.Ay5(3)*k31+Ay.Ay5(4)*k41+Ay.Ay5(5)*k51,...
+                                        y2_0+Ay.Ay5(1)*k12+Ay.Ay5(2)*k22+Ay.Ay5(3)*k32+Ay.Ay5(4)*k42+Ay.Ay5(5)*k52,...
+                                        x1_0+Ay.Ay5(1)*k13+Ay.Ay5(2)*k23+Ay.Ay5(3)*k33+Ay.Ay5(4)*k43+Ay.Ay5(5)*k53,...
+                                        x2_0+Ay.Ay5(1)*k14+Ay.Ay5(2)*k24+Ay.Ay5(3)*k34+Ay.Ay5(4)*k44+Ay.Ay5(5)*k54,...
+                                        u_b,q,u_T,Cal1);
+        k61=h*result_pd.dpd1;
+        k62=h*result_pd.dpd2;
+        k63=h*result_pd.dNe1;
+        k64=h*result_pd.dNe2;
+        
         % compute |y(i+1)-w(i+1)|/h
         D(1)=k11/360-128/4275*k31-2197/75240*k41+k51/50+2/55*k61;
         D(2)=k12/360-128/4275*k32-2197/75240*k42+k52/50+2/55*k62;
-        R=abs(D)/h;
+        D(3)=k13/360-128/4275*k33-2197/75240*k43+k53/50+2/55*k63;
+        D(4)=k14/360-128/4275*k34-2197/75240*k44+k54/50+2/55*k64;
+        R=vpa(norm(D,2)/h,5);
        
         if R<tol            % accurate is acceptable
             t=t+h;
-            y1=y1_0+25/216*k11+1408/2565*k31+2197/4104*k41-k51/5+D;
-            y2=y2_0+25/216*k12+1408/2565*k32+2197/4104*k42-k52/5+D;
-            result.Pd1=y1;
-            result.Pd2=y2;
-            result.t=t;
+            y1=vpa(y1_0+25/216*k11+1408/2565*k31+2197/4104*k41-k51/5+D(1),5);
+            y2=vpa(y2_0+25/216*k12+1408/2565*k32+2197/4104*k42-k52/5+D(2),5);
+            x1=vpa(x1_0+25/216*k13+1408/2565*k33+2197/4104*k43-k53/5+D(1),5);
+            x2=vpa(x2_0+25/216*k14+1408/2565*k34+2197/4104*k44-k54/5+D(2),5);    
+            
             y1_0=y1;
             y2_0=y2;
-            [Pt,Pt1,Pt2,~,~]=Calculate_Pd(y1_0,y2_0,u_b,q,u_T,Cal1);
-            result.Pt1=Pt1;
-            result.Pt2=Pt2;
-            result.Pt=Pt;
+            result_pd=Calculate_Pd(y1_0,y2_0,x1_0,x2_0,u_b,q,u_T,Cal1);
+            Pt_1=result_pd.Pt1;
+            Pt_2=result_pd.Pt2;
+            
+%             result.Pd1=y1;
+%             result.Pd2=y2;
+%             result.Ne1=x1;
+%             result.Ne2=x2;
+%             result.Pt1=vpa(Pt1,5);
+%             result.Pt2=vpa(Pt2,5);
+%             result.Pt=vpa(Pt,5);
+%             result.t=t;
+            Pt1(end+1)=Pt_1;
+            Pt2(end+1)=Pt_2;
+            Pd1(end+1)=y1;
+            Pd2(end+1)=y2;
+            Ne1(end+1)=x1;
+            Ne2(end+1)=x2;
+            T(end+1)=t;
+                       
         end
 
-        % com[ute q
-        q=0.84*(tol/R)^(1/4);
+        % compute e
+        e=0.84*(tol/R)^(1/4);
         % new step size
-        if q<=0.1
+        if e<=0.1
             h=0.1*h;
-        elseif q>=4
+        elseif e>=4
             h=4*h;
         else
-            h=h*q;
+            h=h*e;
         end
         
         if h>hmax
@@ -262,12 +323,21 @@ function result=RKF45_Pd(tspan,tol,hmin,hmax,y1_0,y2_0,u_b,q,u_T,Cal1)
                 flag=false;
             end
         end
-        
-    end
     
+        if flag==false
+            subplot(3,1,1);
+            p1=plot(T,Pd1,T,Pd2);grid on;p1(1).LineWidth=2;p1(2).LineWidth=2;
+            title('13:00--14:00');
+            % title('19:00--20:00');
+            ylabel('Pd/Mpa'),legend('Boiler 1','Boiler 2');
+            subplot(3,1,2);
+            p2=plot(T,Pt1,T,Pt2);grid on;p2(1).LineWidth=2;p2(2).LineWidth=2;
+            ylabel('Pt/Mpa'),legend('Turbine 1','Turbine 2');
+            subplot(3,1,3);
+            p3=plot(T,Ne1,T,Ne2);grid on;p3(1).LineWidth=2;p3(2).LineWidth=2;
+            xlabel('Time/h'),ylabel('Ne/MW'),legend('Turbine 1','Turbine 2');
+        end
+            
+    end
 end   
 
-function result=RKF45_Ne(tspan,tol,hmin,hmax,x1_0,x2_0,P_t,u_T,Cal1)
-
-
-end
